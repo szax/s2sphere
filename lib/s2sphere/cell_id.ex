@@ -47,7 +47,8 @@ defmodule S2Sphere.CellId do
   end
 
   def from_face_pos_level(face, pos, level) do
-    CellId.new((face <<< @pos_bits) + (pos ||| 1))
+    (face <<< @pos_bits) + (pos ||| 1)
+    |> CellId.new()
     |> CellId.parent(level)
   end
 
@@ -129,9 +130,7 @@ defmodule S2Sphere.CellId do
     (cell_id.id &&& (CellId.lsb_for_level(0) - 1)) == 0
   end
 
-  def id(%CellId{} = cell_id) do
-    cell_id.id
-  end
+  def id(%CellId{id: id}), do: id
 
   def is_valid(%CellId{} = cell_id) do
 
@@ -145,9 +144,7 @@ defmodule S2Sphere.CellId do
     id >>> @pos_bits
   end
 
-  def pos(%CellId{} = cell_id) do
-    cell_id.id &&& (0xffffffffffffffff >>> @face_bits)
-  end
+  def pos(%CellId{id: id}), do: id &&& (0xffffffffffffffff >>> @face_bits)
 
   def is_leaf(%CellId{id: id}) do
     (id &&& 1) != 0
@@ -451,9 +448,14 @@ defmodule S2Sphere.CellId do
   end
 
   def from_token(token) do
-    {id, _ } = String.ljust(token, 16, ?0)
+    token
+    |> String.ljust(16, ?0)
     |> Integer.parse(16)
-    CellId.new(id)
+    |> case do
+      {id, _} -> id
+      _ -> nil
+    end
+    |> CellId.new()
   end
 
   def st_to_uv(s) do
